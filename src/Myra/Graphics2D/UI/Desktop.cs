@@ -1023,10 +1023,10 @@ namespace Myra.Graphics2D.UI
 				{
 					if (!_lastDownKeys.Contains(key))
 					{
-						if (key == Keys.Tab)
-						{
-							FocusNextWidget();
-						}
+						//if (key == Keys.Tab)
+						//{
+						//	FocusNextWidget();
+						//}
 
 						KeyDownHandler?.Invoke(key);
 
