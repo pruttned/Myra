@@ -553,7 +553,7 @@ namespace MyraPad
 				// Check whether project has external assets
 				var hasExternalResources = false;
 
-				UIUtils.ProcessWidgets(Project.Root, w =>
+				UIUtils.ProcessWidgets(Project.Root, (w, _) =>
 				{
 					ProcessResourcesPaths(w, k =>
 					{
@@ -580,7 +580,7 @@ namespace MyraPad
 						var updated = false;
 
 						var folder = Path.GetDirectoryName(newPath);
-						UIUtils.ProcessWidgets(Project.Root, widget =>
+						UIUtils.ProcessWidgets(Project.Root, (widget, _) =>
 						{
 							var newResources = new Dictionary<string, string>();
 

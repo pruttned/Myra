@@ -1684,5 +1684,5 @@ namespace Myra.Graphics2D.UI
 		{
 			_startPos = null;
 		}
-	}
+    }
 }

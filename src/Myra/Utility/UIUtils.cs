@@ -3,34 +3,37 @@ using System;
 
 namespace Myra.Utility
 {
-	public static class UIUtils
-	{
-		public static bool ProcessWidgets(this Widget root, Func<Widget, bool> operation)
-		{
-			if (!root.Visible)
-			{
-				return true;
-			}
+    public static class UIUtils
+    {
+        public static bool ProcessWidgets(this Widget root, Func<Widget, object, bool> operation)
+            => root.ProcessWidgets(operation, null);
 
-			var result = operation(root);
-			if (!result)
-			{
-				return false;
-			}
+        public static bool ProcessWidgets<TContext>(this Widget root, Func<Widget, TContext, bool> operation, TContext context)
+        {
+            if (!root.Visible)
+            {
+                return true;
+            }
 
-			var asContainer = root as Container;
-			if (asContainer != null)
-			{
-				foreach (var w in asContainer.ChildrenCopy)
-				{
-					if (!ProcessWidgets(w, operation))
-					{
-						return false;
-					}
-				}
-			}
+            var result = operation(root, context);
+            if (!result)
+            {
+                return false;
+            }
 
-			return true;
-		}
-	}
+            var asContainer = root as Container;
+            if (asContainer != null)
+            {
+                foreach (var w in asContainer.ChildrenCopy)
+                {
+                    if (!ProcessWidgets(w, operation, context))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+    }
 }
