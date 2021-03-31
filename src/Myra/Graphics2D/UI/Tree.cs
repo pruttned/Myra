@@ -292,9 +292,9 @@ namespace Myra.Graphics2D.UI
 
 			if (tree.IsExpanded)
 			{
-				foreach (var widget in tree.ChildNodesGrid.Widgets)
-				{
-					var treeNode = (TreeNode)widget;
+                for (int i = 0; i < tree.ChildNodesGrid.Widgets.Count; i++)
+                {
+					var treeNode = (TreeNode)tree.ChildNodesGrid.Widgets[i];
 					RecursiveUpdateRowVisibility(treeNode);
 				}
 			}
