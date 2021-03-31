@@ -164,7 +164,7 @@ namespace Myra.Graphics2D.UI
 			get; set;
 		}
 
-		public Func<IReadOnlyCollection<Keys>> DownKeysGetter
+		public Func<Keys[]> DownKeysGetter
 		{
 			get; set;
 		}
@@ -438,7 +438,7 @@ namespace Myra.Graphics2D.UI
 			return result;
 		}
 
-		public IReadOnlyCollection<Keys> DefaultDownKeysGetter()
+		public Keys[] DefaultDownKeysGetter()
 		{
 			return Keyboard.GetState().GetPressedKeys();
 		}
