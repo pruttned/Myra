@@ -930,6 +930,7 @@ namespace Myra.Graphics2D.UI.Properties
 			for (var i = 0; i < records.Count; ++i)
 			{
 				var record = records[i];
+				var recordName = record.FindAttribute<DisplayNameAttribute>()?.DisplayName ?? record.Name;
 
 				var hasSetter = record.HasSetter;
 				if (_parentProperty != null && _parentProperty.Type.IsValueType && !_parentProperty.HasSetter)
@@ -1009,7 +1010,7 @@ namespace Myra.Graphics2D.UI.Properties
 					// Subgrid
 					if (value != null)
 					{
-						var subGrid = new SubGrid(this, value, record.Name, DefaultCategoryName, record)
+						var subGrid = new SubGrid(this, value, recordName, DefaultCategoryName, record)
 						{
 							GridColumnSpan = 2,
 							GridRow = y
@@ -1036,17 +1037,9 @@ namespace Myra.Graphics2D.UI.Properties
 					continue;
 				}
 
-				var name = record.Name;
-				var dn = record.FindAttribute<DisplayNameAttribute>();
-
-				if (dn != null)
-				{
-					name = dn.DisplayName;
-				}
-
 				var nameLabel = new Label
 				{
-					Text = name,
+					Text = recordName,
 					VerticalAlignment = VerticalAlignment.Center,
 					GridColumn = 0,
 					GridRow = oldY
