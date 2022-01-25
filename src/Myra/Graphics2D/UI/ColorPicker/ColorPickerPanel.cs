@@ -192,12 +192,12 @@ namespace Myra.Graphics2D.UI.ColorPicker
 			_inputHEX.TextChangedByUser += HexInputChanged;
 			_inputHEX.ValueChanging += _inputHEX_ValueChanging;
 
-			_inputAlpha.Tag = false;
-			_inputAlpha.TextChangedByUser += AlphaInputChanged;
-			_inputAlpha.ValueChanging += _inputRGB_ValueChanging;
+			//_inputAlpha.Tag = false;
+			//_inputAlpha.TextChangedByUser += AlphaInputChanged;
+			//_inputAlpha.ValueChanging += _inputRGB_ValueChanging;
 
-			_sliderAlpha.Tag = false;
-			_sliderAlpha.ValueChangedByUser += AlphaSliderChanged;
+			//_sliderAlpha.Tag = false;
+			//_sliderAlpha.ValueChangedByUser += AlphaSliderChanged;
 
 			_hsPicker.Tag = false;
 			_vPicker.Tag = false;
@@ -436,21 +436,21 @@ namespace Myra.Graphics2D.UI.ColorPicker
 			}
 		}
 
-		private void AlphaInputChanged(object sender, EventArgs e)
-		{
-			if (string.IsNullOrEmpty(_inputAlpha.Text))
-			{
-				return;
-			}
+		//private void AlphaInputChanged(object sender, EventArgs e)
+		//{
+		//	if (string.IsNullOrEmpty(_inputAlpha.Text))
+		//	{
+		//		return;
+		//	}
 
-			if (byte.TryParse(_inputAlpha.Text, out byte alpha))
-			{
-				_inputAlpha.Tag = true;
-				A = alpha / 255f;
-				OnColorChanged(Color);
-				_inputAlpha.Tag = false;
-			}
-		}
+		//	if (byte.TryParse(_inputAlpha.Text, out byte alpha))
+		//	{
+		//		_inputAlpha.Tag = true;
+		//		A = alpha / 255f;
+		//		OnColorChanged(Color);
+		//		_inputAlpha.Tag = false;
+		//	}
+		//}
 
 		private void AlphaSliderChanged(object sender, ValueChangedEventArgs<float> e)
 		{
@@ -484,14 +484,14 @@ namespace Myra.Graphics2D.UI.ColorPicker
 			{
 				_inputHEX.Text = rgb.ToHexString().Substring(1, 6);
 			}
-			if (!(bool)_inputAlpha.Tag)
-			{
-				_inputAlpha.Text = DisplayAlpha.ToString();
-			}
-			if (!(bool)_sliderAlpha.Tag)
-			{
-				_sliderAlpha.Value = DisplayAlpha;
-			}
+			//if (!(bool)_inputAlpha.Tag)
+			//{
+			//	_inputAlpha.Text = DisplayAlpha.ToString();
+			//}
+			//if (!(bool)_sliderAlpha.Tag)
+			//{
+			//	_sliderAlpha.Value = DisplayAlpha;
+			//}
 			if (!(bool)_hsPicker.Tag)
 			{
 				_hsPicker.Top = (int)(hsv.S / 200f * WheelHeight * Math.Sin(DegToRad * (-hsv.H + 180)));

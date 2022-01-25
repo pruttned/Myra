@@ -102,21 +102,21 @@ namespace Myra.Graphics2D.UI.ColorPicker
 			_inputHEX.GridColumnSpan = 2;
 			_inputHEX.Id = "_inputHEX";
 
-			var label4 = new Label();
-			label4.Text = "Alpha";
-			label4.GridRow = 4;
+			//var label4 = new Label();
+			//label4.Text = "Alpha";
+			//label4.GridRow = 4;
 
-			_inputAlpha = new TextBox();
-			_inputAlpha.GridColumn = 2;
-			_inputAlpha.GridRow = 4;
-			_inputAlpha.Id = "_inputAlpha";
+			//_inputAlpha = new TextBox();
+			//_inputAlpha.GridColumn = 2;
+			//_inputAlpha.GridRow = 4;
+			//_inputAlpha.Id = "_inputAlpha";
 
-			_sliderAlpha = new HorizontalSlider();
-			_sliderAlpha.Maximum = 255;
-			_sliderAlpha.Height = 21;
-			_sliderAlpha.GridColumn = 1;
-			_sliderAlpha.GridRow = 4;
-			_sliderAlpha.Id = "_sliderAlpha";
+			//_sliderAlpha = new HorizontalSlider();
+			//_sliderAlpha.Maximum = 255;
+			//_sliderAlpha.Height = 21;
+			//_sliderAlpha.GridColumn = 1;
+			//_sliderAlpha.GridRow = 4;
+			//_sliderAlpha.Id = "_sliderAlpha";
 
 			_saveColor = new TextButton();
 			_saveColor.Text = "Save Color";
@@ -175,9 +175,9 @@ namespace Myra.Graphics2D.UI.ColorPicker
 			grid1.Widgets.Add(_inputHSV);
 			grid1.Widgets.Add(label3);
 			grid1.Widgets.Add(_inputHEX);
-			grid1.Widgets.Add(label4);
-			grid1.Widgets.Add(_inputAlpha);
-			grid1.Widgets.Add(_sliderAlpha);
+			//grid1.Widgets.Add(label4);
+			//grid1.Widgets.Add(_inputAlpha);
+			//grid1.Widgets.Add(_sliderAlpha);
 			grid1.Widgets.Add(_saveColor);
 
 			var horizontalStackPanel1 = new HorizontalStackPanel();
@@ -225,8 +225,8 @@ namespace Myra.Graphics2D.UI.ColorPicker
 		public TextBox _inputRGB;
 		public TextBox _inputHSV;
 		public TextBox _inputHEX;
-		public TextBox _inputAlpha;
-		public HorizontalSlider _sliderAlpha;
+		//public TextBox _inputAlpha;
+		//public HorizontalSlider _sliderAlpha;
 		public TextButton _saveColor;
 		public Grid _userColors;
 	}
