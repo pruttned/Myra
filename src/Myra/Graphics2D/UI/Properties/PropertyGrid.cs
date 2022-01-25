@@ -805,6 +805,7 @@ namespace Myra.Graphics2D.UI.Properties
 				{
 					collectionEditor.SaveChanges();
 					UpdateLabelCount(label, items.Count);
+					FireChanged(record.Name);
 				};
 
 				dialog.ShowModal(Desktop);
