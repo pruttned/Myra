@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.Portable" PrivateAssets="All" Version="3.6.0.1625" />
+    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageReference Include="XNAssets" Version="0.5.0.6" />
     <PackageReference Include="info.lundin.math.dll" Version="1.2.6" />
   </ItemGroup>

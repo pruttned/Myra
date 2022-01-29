@@ -14,6 +14,7 @@ using System.IO;
 using Myra.Graphics2D.Brushes;
 using XNAssets.Utility;
 using Myra.Attributes;
+using System.ComponentModel.DataAnnotations;
 
 #if !STRIDE
 using Microsoft.Xna.Framework;
@@ -626,12 +627,19 @@ namespace Myra.Graphics2D.UI.Properties
 				numericType = propertyType.GetNullableType();
 			}
 
+			var range = record.FindAttribute<RangeAttribute>();
+
 			var spinButton = new SpinButton
 			{
 				Integer = numericType.IsNumericInteger(),
 				Nullable = propertyType.IsNullablePrimitive(),
 				Value = value != null ? (float)Convert.ChangeType(value, typeof(float)) : default(float?)
 			};
+			if(range != null)
+            {
+				spinButton.Minimum = (float)Convert.ChangeType(range.Minimum, typeof(float));
+				spinButton.Maximum = (float)Convert.ChangeType(range.Maximum, typeof(float));
+			}
 
 			if (hasSetter)
 			{
