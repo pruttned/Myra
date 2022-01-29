@@ -640,6 +640,10 @@ namespace Myra.Graphics2D.UI.Properties
 				spinButton.Minimum = (float)Convert.ChangeType(range.Minimum, typeof(float));
 				spinButton.Maximum = (float)Convert.ChangeType(range.Maximum, typeof(float));
 			}
+            if (!spinButton.Integer)
+            {
+				spinButton.Increment = .1f;
+			}
 
 			if (hasSetter)
 			{
