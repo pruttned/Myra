@@ -1,11 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <ApplicationIcon />
     <StartupObject />
     <AssemblyName>Myra.Samples.CustomUIStylesheet</AssemblyName>
     <RootNamespace>Myra.Samples.CustomUIStylesheet</RootNamespace>
-    <TargetFramework>net45</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
     <OutputPath>bin\MonoGame\$(Configuration)</OutputPath>
   </PropertyGroup>
 

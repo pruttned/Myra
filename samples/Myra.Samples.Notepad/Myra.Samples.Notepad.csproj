@@ -5,7 +5,7 @@
     <StartupObject />
     <AssemblyName>Myra.Samples.Notepad</AssemblyName>
     <RootNamespace>Myra.Samples.Notepad</RootNamespace>
-    <TargetFramework>net45</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
     <OutputPath>bin\MonoGame\$(Configuration)</OutputPath>
   </PropertyGroup>
 

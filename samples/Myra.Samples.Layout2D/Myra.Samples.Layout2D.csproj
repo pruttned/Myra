@@ -1,11 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <ApplicationIcon />
     <StartupObject />
     <AssemblyName>Myra.Samples.Layout2D</AssemblyName>
     <RootNamespace>Myra.Samples.Layout2D</RootNamespace>
-    <TargetFramework>net45</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
     <OutputPath>bin\MonoGame\$(Configuration)</OutputPath>
   </PropertyGroup>
   

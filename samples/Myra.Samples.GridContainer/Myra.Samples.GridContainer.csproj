@@ -5,7 +5,7 @@
     <StartupObject />
     <AssemblyName>Myra.Samples.GridContainer</AssemblyName>
     <RootNamespace>Myra.Samples.GridContainer</RootNamespace>
-    <TargetFramework>net45</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
     <OutputPath>bin\MonoGame\$(Configuration)</OutputPath>
   </PropertyGroup>
 
