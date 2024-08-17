@@ -1,12 +1,13 @@
 ﻿using Myra.Graphics2D.UI;
+using System;
 using System.Linq;
+using Myra.Graphics2D.UI.Styles;
+
 
 #if !STRIDE
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 #if ANDROID
-using System;
-using Microsoft.Xna.Framework.GamerServices;
 #endif
 #else
 using System.Threading.Tasks;
@@ -64,6 +65,9 @@ namespace Myra.Samples.AllWidgets
 			base.LoadContent();
 
 			MyraEnvironment.Game = this;
+			MyraEnvironment.EnableModalDarkening = true;
+
+//			Stylesheet.Current = DefaultAssets.DefaultStylesheet2X;
 
 			_allWidgets = new AllWidgets();
 
@@ -75,22 +79,22 @@ namespace Myra.Samples.AllWidgets
 					return;
 				}
 
-				if (_desktop.DownKeys.Contains(Keys.LeftControl) || _desktop.DownKeys.Contains(Keys.RightControl))
+				if (_desktop.IsKeyDown(Keys.LeftControl) || _desktop.IsKeyDown(Keys.RightControl))
 				{
-					if (_desktop.DownKeys.Contains(Keys.O))
+					if (_desktop.IsKeyDown(Keys.O))
 					{
 						_allWidgets.OpenFile();
-					} else if (_desktop.DownKeys.Contains(Keys.S))
+					} else if (_desktop.IsKeyDown(Keys.S))
 					{
 						_allWidgets.SaveFile();
-					} else if (_desktop.DownKeys.Contains(Keys.D))
+					} else if (_desktop.IsKeyDown(Keys.D))
 					{
 						_allWidgets.ChooseFolder();
-					} else if (_desktop.DownKeys.Contains(Keys.L))
+					} else if (_desktop.IsKeyDown(Keys.L))
 					{
 						_allWidgets.ChooseColor();
 					}
-					else if (_desktop.DownKeys.Contains(Keys.Q))
+					else if (_desktop.IsKeyDown(Keys.Q))
 					{
 						Exit();
 					}
@@ -99,7 +103,7 @@ namespace Myra.Samples.AllWidgets
 
 			_desktop.Root = _allWidgets;
 
-#if MONOGAME
+#if MONOGAME && !ANDROID
 			// Inform Myra that external text input is available
 			// So it stops translating Keys to chars
 			_desktop.HasExternalTextInput = true;
@@ -108,28 +112,6 @@ namespace Myra.Samples.AllWidgets
 			Window.TextInput += (s, a) =>
 			{
 				_desktop.OnChar(a.Character);
-			};
-#endif
-
-#if ANDROID
-			_desktop.WidgetGotKeyboardFocus += (s, a) =>
-			{
-				var asTextBox = a.Data as TextBox;
-				if (asTextBox == null)
-				{
-					return;
-				}
-
-				Guide.BeginShowKeyboardInput(PlayerIndex.One,
-					"Title",
-					"Description",
-					asTextBox.Text,
-					new AsyncCallback(r =>
-					{
-						var text = Guide.EndShowKeyboardInput(r);
-						asTextBox.Text = text;
-					}),
-					null);
 			};
 #endif
 		}
@@ -166,6 +148,7 @@ namespace Myra.Samples.AllWidgets
 			// Set render target
 			GraphicsContext.CommandList.SetRenderTargetAndViewport(GraphicsDevice.Presenter.DepthStencilBuffer, GraphicsDevice.Presenter.BackBuffer);
 #endif
+			_allWidgets._labelOverGui.Text = "Is mouse over GUI: " + _desktop.IsMouseOverGUI;
 			_desktop.Render();
 		}
 	}

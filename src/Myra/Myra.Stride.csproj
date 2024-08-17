@@ -1,26 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Authors>MyraTeam</Authors>
-    <Product>Myra</Product>
-    <Description>UI Library for MonoGame, FNA and Stride</Description>
-    <PackageLicenseUrl>https://en.wikipedia.org/wiki/MIT_License</PackageLicenseUrl>
-    <PackageProjectUrl>https://github.com/rds1983/Myra</PackageProjectUrl>
-    <AssemblyName>Myra</AssemblyName>
-    <RootNamespace>Myra</RootNamespace>
-    <Version>1.0.0.0</Version>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <DefineConstants>$(DefineConstants);STRIDE</DefineConstants>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <PackageId>Myra.Stride</PackageId>
+    <AssemblyName>Myra</AssemblyName>
     <OutputPath>bin\Stride\$(Configuration)</OutputPath>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+  
   <ItemGroup>
     <EmbeddedResource Include="Resources\**\*.*" />
-  </ItemGroup>  
- 
+  </ItemGroup>
+
   <ItemGroup>
-    <PackageReference Include="XNAssets.Stride" Version="0.5.0.10" />
-    <PackageReference Include="info.lundin.math.dll" Version="1.2.6" />
+    <Compile Remove="Platform\**\*.*" />
+  </ItemGroup>  
+
+  <ItemGroup>
+    <PackageReference Include="Stride.Engine" Version="$(StrideVersion)" />
+    <PackageReference Include="XNAssets.Stride" Version="$(XNAssetsVersion)" />
+    <PackageReference Include="FontStashSharp.Stride" Version="$(FontStashSharpVersion)" />
+    <PackageReference Include="info.lundin.math.dll" Version="$(InfoLundinMathVersion)" />
   </ItemGroup>  
 </Project>

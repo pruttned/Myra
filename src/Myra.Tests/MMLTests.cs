@@ -1,52 +1,41 @@
-﻿using System.Reflection;
+﻿using AssetManagementBase;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Myra.Graphics2D.UI;
+using Myra.MML;
 using NUnit.Framework;
-using XNAssets;
 
 namespace Myra.Tests
 {
 	[TestFixture]
 	public class MMLTests
 	{
-		private TestGame _game;
-
-		public GraphicsDevice GraphicsDevice => _game.GraphicsDevice;
-
-		[SetUp]
-		public void SetUp()
-		{
-			_game = new TestGame();
-			MyraEnvironment.Game = _game;
-		}
-
 		[Test]
 		public void LoadMMLWithExternalAssets()
 		{
-			ResourceAssetResolver assetResolver = new ResourceAssetResolver(typeof(MMLTests).Assembly, "Resources.");
-			AssetManager assetManager = new AssetManager(GraphicsDevice, assetResolver);
+			var assetManager = AssetManager.CreateResourceAssetManager(Utility.Assembly, "Resources.");
 
-			var mml = assetManager.Load<string>("GridWithExternalResources.xmmp");
+			var mml = assetManager.ReadAsString("GridWithExternalResources.xmmp");
 
 			var project = Project.LoadFromXml(mml, assetManager);
 
-			var imageButton1 = (ImageButton)project.Root.FindWidgetById("spawnUnit1");
+			var imageButton1 = (Button)project.Root.FindChildById("spawnUnit1");
 			Assert.IsNotNull(imageButton1);
-			Assert.IsNotNull(imageButton1.Image);
-			Assert.AreEqual(imageButton1.Image.Size, new Point(64, 64));
 
-			var label = (Label)project.Root.FindWidgetById("label");
+			var image = (Image)imageButton1.Content;
+			Assert.IsNotNull(image);
+			Assert.IsNotNull(image.Renderable);
+			Assert.AreEqual(image.Renderable.Size, new Point(64, 64));
+
+			var label = (Label)project.Root.FindChildById("label");
 			Assert.IsNotNull(label);
 			Assert.IsNotNull(label.Font);
-			#if MONOGAME
-			var texture = label.Font.Texture;
-			#else
-			var fi = typeof(SpriteFont).GetField("textureValue", BindingFlags.NonPublic | BindingFlags.Instance);
-			var texture = (Texture2D) fi.GetValue(label.Font);
-			#endif
-			Assert.AreEqual(new Point(texture.Width, texture.Height), new Point(512, 512));
-			Assert.AreEqual(label.Font.Characters.Count, 191);
+		}
+
+		[Test]
+		public void CheckGridAttachedProperties()
+		{
+			var properties = AttachedPropertiesRegistry.GetPropertiesOfType(typeof(Grid));
+			Assert.AreEqual(4, properties.Length);
 		}
 	}
 }

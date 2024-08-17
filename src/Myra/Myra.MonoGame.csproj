@@ -1,28 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Authors>MyraTeam</Authors>
-    <Product>Myra</Product>
-    <Description>UI Library for MonoGame, FNA and Xenko</Description>
-    <PackageLicenseUrl>https://en.wikipedia.org/wiki/MIT_License</PackageLicenseUrl>
-    <PackageProjectUrl>https://github.com/rds1983/Myra</PackageProjectUrl>
-    <AssemblyName>Myra</AssemblyName>
-    <RootNamespace>Myra</RootNamespace>
-    <Version>1.0.0.0</Version>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <DefineConstants>$(DefineConstants);MONOGAME</DefineConstants>
-    <TargetFrameworks>netstandard2.0;net48</TargetFrameworks>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>Myra</AssemblyName>
     <PackageId>Myra</PackageId>
     <OutputPath>bin\MonoGame\$(Configuration)</OutputPath>
   </PropertyGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\**\*.*" />
-  </ItemGroup>  
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MonoGame.Framework.Portable" PrivateAssets="All" Version="3.6.0.1625" />
-    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
-    <PackageReference Include="XNAssets" Version="0.5.0.6" />
-    <PackageReference Include="info.lundin.math.dll" Version="1.2.6" />
+    <EmbeddedResource Include="Resources\**\*.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Platform\**\*.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="XNAssets.MonoGame" Version="$(XNAssetsVersion)" />
+    <PackageReference Include="FontStashSharp.MonoGame" Version="$(FontStashSharpVersion)" />
+    <PackageReference Include="info.lundin.math.dll" Version="$(InfoLundinMathVersion)" />
+    <PackageReference Include="MonoGame.Framework.DesktopGL" PrivateAssets="All" Version="$(MonoGameVersion)" />
   </ItemGroup>
 </Project>

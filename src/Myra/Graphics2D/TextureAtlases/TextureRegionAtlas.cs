@@ -2,19 +2,20 @@
 using System.Collections.Generic;
 using System.Xml.Linq;
 using Myra.MML;
-using XNAssets;
 
-#if !STRIDE
+#if MONOGAME || FNA
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-#else
+#elif STRIDE
 using Stride.Core.Mathematics;
 using Texture2D = Stride.Graphics.Texture;
+#else
+using System.Drawing;
+using Texture2D = System.Object;
 #endif
 
 namespace Myra.Graphics2D.TextureAtlases
 {
-	[AssetLoader(typeof(TextureRegionAtlasLoader))]
 	public partial class TextureRegionAtlas
 	{
 		private const string TextureAtlasName = "TextureAtlas";
@@ -33,6 +34,8 @@ namespace Myra.Graphics2D.TextureAtlases
 		public string Image { get; set; }
 
 		public Dictionary<string, TextureRegion> Regions { get; } = new Dictionary<string, TextureRegion>();
+
+		public Texture2D Texture { get; private set; }
 
 		public TextureRegion this[string name]
 		{
@@ -133,6 +136,7 @@ namespace Myra.Graphics2D.TextureAtlases
 			result.Image = imageFileAttr.Value;
 
 			var texture = textureGetter(result.Image);
+			result.Texture = texture;
 			foreach(XElement entry in root.Elements())
 			{
 				var id = entry.Attribute(BaseContext.IdName).Value;

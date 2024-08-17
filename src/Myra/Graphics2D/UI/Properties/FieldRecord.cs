@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Myra.Utility;
+using System;
 using System.Reflection;
-using XNAssets.Utility;
 
 namespace Myra.Graphics2D.UI.Properties
 {
-	public class FieldRecord : Record
+	internal class FieldRecord : Record
 	{
 		private readonly FieldInfo _fieldInfo;
 

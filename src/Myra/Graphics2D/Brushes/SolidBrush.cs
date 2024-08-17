@@ -1,11 +1,15 @@
-﻿using System;
+﻿using FontStashSharp.RichText;
+using System;
+using Myra.Graphics2D.UI.Styles;
 
-#if !STRIDE
+
+#if MONOGAME || FNA
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-#else
+#elif STRIDE
 using Stride.Core.Mathematics;
-using Stride.Graphics;
+#else
+using System.Drawing;
+using Color = FontStashSharp.FSColor;
 #endif
 
 namespace Myra.Graphics2D.Brushes
@@ -43,13 +47,13 @@ namespace Myra.Graphics2D.Brushes
 			Color = c.Value;
 		}
 
-		public void Draw(SpriteBatch batch, Rectangle dest, Color color)
+		public void Draw(RenderContext context, Rectangle dest, Color color)
 		{
-			var white = DefaultAssets.WhiteRegion;
+			var white = Stylesheet.Current.WhiteRegion;
 
 			if (color == Color.White)
 			{
-				white.Draw(batch, dest, Color);
+				white.Draw(context, dest, Color);
 			}
 			else
 			{
@@ -58,7 +62,7 @@ namespace Myra.Graphics2D.Brushes
 					(int)(Color.B * color.B / 255.0f),
 					(int)(Color.A * color.A / 255.0f));
 
-				white.Draw(batch, dest, c);
+				white.Draw(context, dest, c);
 			}
 		}
 	}

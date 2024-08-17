@@ -1,10 +1,15 @@
-﻿#if !STRIDE
+﻿using System;
+
+#if MONOGAME || FNA
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-#else
+#elif STRIDE
 using Stride.Core.Mathematics;
-using Stride.Graphics;
 using Texture2D = Stride.Graphics.Texture;
+#else
+using System.Drawing;
+using Texture2D = System.Object;
+using Color = FontStashSharp.FSColor;
 #endif
 
 namespace Myra.Graphics2D.TextureAtlases
@@ -129,70 +134,84 @@ namespace Myra.Graphics2D.TextureAtlases
 			}
 		}
 
-		public override void Draw(SpriteBatch batch, Rectangle dest, Color color)
+		public override void Draw(RenderContext context, Rectangle dest, Color color)
 		{
 			var y = dest.Y;
 
-			var centerWidth = dest.Width - _info.Left - _info.Right;
-			var centerHeight = dest.Height - _info.Top - _info.Bottom;
+			var left = Math.Min(_info.Left, dest.Width);
+			var top = Math.Min(_info.Top, dest.Height);
+			var right = Math.Min(_info.Right, dest.Width);
+			var bottom = Math.Min(_info.Bottom, dest.Height);
+
+			var centerWidth = dest.Width - left - right;
+			if (centerWidth < 0)
+			{
+				centerWidth = 0;
+			}
+
+			var centerHeight = dest.Height - top - bottom;
+			if (centerHeight < 0)
+			{
+				centerHeight = 0;
+			}
 
 			if (_topLeft != null)
 			{
-				_topLeft.Draw(batch,
+				_topLeft.Draw(context,
 					new Rectangle(dest.X,
 						y,
-						_info.Left,
-						_info.Top),
+						left,
+						top),
 					color);
 			}
 
-			if (_topCenter != null)
+			if (_topCenter != null && centerWidth > 0)
 			{
-				_topCenter.Draw(batch,
-					new Rectangle(dest.X + _info.Left,
+				_topCenter.Draw(context,
+					new Rectangle(dest.X + left,
 						y,
 						centerWidth,
-						_info.Top),
+						top),
 					color);
 			}
 
 			if (_topRight != null)
 			{
-				_topRight.Draw(batch,
+				_topRight.Draw(context,
 					new Rectangle(dest.X + Info.Left + centerWidth,
 						y,
-						_info.Right,
-						_info.Top),
+						right,
+						top),
 					color);
 			}
 
-			y += _info.Top;
-			if (_centerLeft != null)
+			y += top;
+			if (_centerLeft != null && centerHeight > 0)
 			{
-				_centerLeft.Draw(batch,
+				_centerLeft.Draw(context,
 					new Rectangle(dest.X,
 						y,
-						_info.Left,
+						left,
 						centerHeight),
 					color);
 			}
 
-			if (_center != null)
+			if (_center != null && centerWidth > 0 && centerHeight > 0)
 			{
-				_center.Draw(batch,
-					new Rectangle(dest.X + _info.Left,
+				_center.Draw(context,
+					new Rectangle(dest.X + left,
 						y,
 						centerWidth,
 						centerHeight),
 					color);
 			}
 
-			if (_centerRight != null)
+			if (_centerRight != null && centerHeight > 0)
 			{
-				_centerRight.Draw(batch,
+				_centerRight.Draw(context,
 					new Rectangle(dest.X + Info.Left + centerWidth,
 						y,
-						_info.Right,
+						right,
 						centerHeight),
 					color);
 			}
@@ -200,31 +219,31 @@ namespace Myra.Graphics2D.TextureAtlases
 			y += centerHeight;
 			if (_bottomLeft != null)
 			{
-				_bottomLeft.Draw(batch,
+				_bottomLeft.Draw(context,
 					new Rectangle(dest.X,
 						y,
-						_info.Left,
-						_info.Bottom),
+						left,
+						bottom),
 					color);
 			}
 
-			if (_bottomCenter != null)
+			if (_bottomCenter != null && centerWidth > 0)
 			{
-				_bottomCenter.Draw(batch,
-					new Rectangle(dest.X + _info.Left,
+				_bottomCenter.Draw(context,
+					new Rectangle(dest.X + left,
 						y,
 						centerWidth,
-						_info.Bottom),
+						bottom),
 					color);
 			}
 
 			if (_bottomRight != null)
 			{
-				_bottomRight.Draw(batch,
+				_bottomRight.Draw(context,
 					new Rectangle(dest.X + Info.Left + centerWidth,
 						y,
-						_info.Right,
-						_info.Bottom),
+						right,
+						bottom),
 					color);
 			}
 		}

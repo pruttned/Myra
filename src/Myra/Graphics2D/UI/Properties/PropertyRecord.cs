@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Myra.Utility;
+using System;
 using System.Reflection;
-using XNAssets.Utility;
 
 namespace Myra.Graphics2D.UI.Properties
 {
-	public class PropertyRecord : Record
+	internal class PropertyRecord : Record
 	{
 		private readonly PropertyInfo _propertyInfo;
 

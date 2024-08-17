@@ -1,9 +1,9 @@
-﻿using Microsoft.Xna.Framework;
+﻿using AssetManagementBase;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Myra.Graphics2D.TextureAtlases;
 using Myra.Graphics2D.UI;
 using Myra.Graphics2D.UI.Styles;
-using XNAssets;
 
 namespace Myra.Samples.CustomUIStylesheet
 {
@@ -33,18 +33,22 @@ namespace Myra.Samples.CustomUIStylesheet
 			MyraEnvironment.Game = this;
 
 			// Create asset manager
-			var assetManager = new AssetManager(GraphicsDevice, new ResourceAssetResolver(typeof(CustomUIStylesheetGame).Assembly, "Resources"));
+			var assetManager = AssetManager.CreateResourceAssetManager(typeof(CustomUIStylesheetGame).Assembly, "Resources");
 
 			// Load stylesheet
-			Stylesheet.Current = assetManager.Load<Stylesheet>("ui_stylesheet.xml");
+			Stylesheet.Current = assetManager.LoadStylesheet("ui_stylesheet.xmms");
 
 			_allWidgets = new AllWidgets();
-			var textureAtlas = assetManager.Load<TextureRegionAtlas>("ui_stylesheet.atlas");
-			_allWidgets._button.Image = textureAtlas["music-off"];
-			_allWidgets._imageButton.Image = textureAtlas["sound-off"];
+			var textureAtlas = assetManager.LoadTextureRegionAtlas("ui_stylesheet.xmat");
+			_allWidgets._image.Renderable = textureAtlas["music-off"];
 
-			_desktop = new Desktop();
-			_desktop.Root = _allWidgets;
+			var image = (Image)_allWidgets._imageButton.Content;
+			image.Renderable = textureAtlas["sound-off"];
+
+			_desktop = new Desktop
+			{
+				Root = _allWidgets
+			};
 		}
 
 		protected override void Update(GameTime gameTime)

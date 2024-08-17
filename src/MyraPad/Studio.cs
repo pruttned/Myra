@@ -9,17 +9,16 @@ using Myra.Graphics2D.UI;
 using Myra.Graphics2D.UI.ColorPicker;
 using Myra.Graphics2D.UI.File;
 using Myra.Graphics2D.UI.Properties;
-using Myra.Graphics2D.UI.Styles;
 using MyraPad.UI;
-using Myra.Utility;
 using Myra;
 using System.Text.RegularExpressions;
 using Microsoft.Xna.Framework.Input;
-using System.Threading;
-using System.Xml.Linq;
 using Myra.Graphics2D;
-using XNAssets;
-using XNAssets.Utility;
+using FontStashSharp.RichText;
+using FontStashSharp;
+using AssetManagementBase;
+using Myra.Events;
+using Myra.Utility;
 
 namespace MyraPad
 {
@@ -34,11 +33,7 @@ namespace MyraPad
 		private static readonly string[] SimpleWidgets = new[]
 		{
 			"ImageTextButton",
-			"TextButton",
-			"ImageButton",
-			"RadioButton",
 			"SpinButton",
-			"CheckBox",
 			"HorizontalProgressBar",
 			"VerticalProgressBar",
 			"HorizontalSeparator",
@@ -53,6 +48,10 @@ namespace MyraPad
 
 		private static readonly string[] Containers = new[]
 		{
+			"Button",
+			"ToggleButton",
+			"CheckButton",
+			"RadioButton",
 			"Window",
 			"Grid",
 			"Panel",
@@ -60,29 +59,29 @@ namespace MyraPad
 			"VerticalSplitPane",
 			"HorizontalSplitPane",
 			"VerticalStackPanel",
-			"HorizontalStackPanel"
+			"HorizontalStackPanel",
+			"ListView",
+			"ComboView"
 		};
 
 		private static readonly string[] SpecialContainers = new[]
 {
 			"HorizontalMenu",
 			"VerticalMenu",
-			"ComboBox",
-			"ListBox",
 			"TabControl",
 		};
 
 		private static Studio _instance;
 
-		private readonly ConcurrentQueue<string> _loadQueue = new ConcurrentQueue<string>();
-		private readonly ConcurrentQueue<Project> _newProjectsQueue = new ConcurrentQueue<Project>();
-		private readonly AutoResetEvent _refreshProjectEvent = new AutoResetEvent(false);
+		private static readonly Regex TagResolver = new Regex("<([A-Za-z0-9\\.]+)");
+
+		private readonly AsyncTasksQueue _queue = new AsyncTasksQueue();
+		private readonly ConcurrentQueue<Action> _uiActions = new ConcurrentQueue<Action>();
 
 		private bool _suppressProjectRefresh = false;
 		private readonly GraphicsDeviceManager _graphicsDeviceManager;
 		private readonly State _state;
 		private StudioWidget _ui;
-		private PropertyGrid _propertyGrid;
 		private string _filePath;
 		private string _lastFolder;
 		private bool _isDirty;
@@ -93,12 +92,14 @@ namespace MyraPad
 		private int _line, _col, _indentLevel;
 		private bool _applyAutoIndent = false;
 		private bool _applyAutoClose = false;
-		private object _newObject;
 		private DateTime? _refreshInitiated;
 
 		private VerticalMenu _autoCompleteMenu = null;
 		private readonly Options _options = null;
 		private Desktop _desktop;
+
+		private readonly Dictionary<string, FontSystem> _fontCache = new Dictionary<string, FontSystem>();
+		private readonly Dictionary<string, Texture2D> _textureCache = new Dictionary<string, Texture2D>();
 
 		public static Studio Instance
 		{
@@ -128,13 +129,14 @@ namespace MyraPad
 				{
 					var folder = Path.GetDirectoryName(_filePath);
 					PropertyGridSettings.BasePath = folder;
-					PropertyGridSettings.AssetManager = new AssetManager(GraphicsDevice, new FileAssetResolver(folder));
+					PropertyGridSettings.AssetManager = AssetManager.CreateFileAssetManager(folder);
 					_lastFolder = folder;
-				} else
+				}
+				else
 				{
 					PropertyGridSettings.BasePath = string.Empty;
 					PropertyGridSettings.AssetManager = MyraEnvironment.DefaultAssetManager;
-					PropertyGridSettings.AssetManager.ClearCache();
+					PropertyGridSettings.AssetManager.Cache.Clear();
 				}
 
 				UpdateTitle();
@@ -201,15 +203,17 @@ namespace MyraPad
 			}
 		}
 
+		private PropertyGrid PropertyGrid => _ui._propertyGrid;
+
 		private PropertyGridSettings PropertyGridSettings
 		{
 			get
 			{
-				return _propertyGrid.Settings;
+				return PropertyGrid.Settings;
 			}
 		}
 
-		private IAssetManager AssetManager
+		public AssetManager AssetManager
 		{
 			get
 			{
@@ -217,13 +221,50 @@ namespace MyraPad
 			}
 		}
 
+		private string BaseRichTextPath
+		{
+			get
+			{
+				var result = string.IsNullOrEmpty(FilePath) ? string.Empty : Path.GetDirectoryName(FilePath);
+				if (!string.IsNullOrEmpty(Project.DesignerRtfAssetsPath))
+				{
+					if (string.IsNullOrEmpty(result) || Path.IsPathRooted(Project.DesignerRtfAssetsPath))
+					{
+						result = Project.DesignerRtfAssetsPath;
+					}
+					else
+					{
+						result = Path.Combine(result, Project.DesignerRtfAssetsPath);
+					}
+				}
+
+				return result;
+			}
+		}
+
+		private Type ParentType
+		{
+			get
+			{
+				if (string.IsNullOrEmpty(_parentTag))
+				{
+					return null;
+				}
+
+				return Project.GetWidgetTypeByName(_parentTag);
+			}
+		}
+
+		public object NewObject { get; set; }
+		public Project NewProject { get; set; }
+
 		public Studio(string[] args)
 		{
 			_instance = this;
 
 			// Restore state
 			_state = State.Load();
-			
+
 			//Load via program argument
 			if (args.Length > 0)
 			{
@@ -231,10 +272,10 @@ namespace MyraPad
 				if (!string.IsNullOrEmpty(filePathArg))
 				{
 					_state.EditedFile = filePathArg;
-					_state.LastFolder =  Path.GetDirectoryName(filePathArg);
+					_state.LastFolder = Path.GetDirectoryName(filePathArg);
 				}
 			}
-			
+
 			_graphicsDeviceManager = new GraphicsDeviceManager(this);
 
 			if (_state != null)
@@ -259,8 +300,6 @@ namespace MyraPad
 				_graphicsDeviceManager.PreferredBackBufferHeight = 800;
 				_options = new Options();
 			}
-
-			ThreadPool.QueueUserWorkItem(RefreshProjectProc);
 		}
 
 		protected override void Initialize()
@@ -276,13 +315,14 @@ namespace MyraPad
 			base.LoadContent();
 
 			MyraEnvironment.Game = this;
-			
+			MyraEnvironment.EnableModalDarkening = true;
+
 			_desktop = new Desktop();
 
 			BuildUI();
-			
-			#if MONOGAME
-			
+
+#if MONOGAME
+
 			// Inform Myra that external text input is available
 			// So it stops translating Keys to chars
 			_desktop.HasExternalTextInput = true;
@@ -293,12 +333,53 @@ namespace MyraPad
 				_desktop.OnChar(a.Character);
 			};
 
-			#endif
+#endif
 
-			if (_state != null && !string.IsNullOrEmpty(_state.EditedFile))
+			if (_state != null && !string.IsNullOrEmpty(_state.EditedFile) && File.Exists(_state.EditedFile))
 			{
 				Load(_state.EditedFile);
 			}
+
+			RichTextDefaults.FontResolver = p =>
+			{
+				// Parse font name and size
+				var args = p.Split(',');
+				var fontName = args[0].Trim();
+				var fontSize = int.Parse(args[1].Trim());
+
+				// _fontCache is field of type Dictionary<string, FontSystem>
+				// It is used to cache fonts
+				FontSystem fontSystem;
+				if (!_fontCache.TryGetValue(fontName, out fontSystem))
+				{
+					// Load and cache the font system
+					fontSystem = new FontSystem();
+					fontSystem.AddFont(File.ReadAllBytes(Path.Combine(BaseRichTextPath, fontName)));
+					_fontCache[fontName] = fontSystem;
+				}
+
+				// Return the required font
+				return fontSystem.GetFont(fontSize);
+			};
+
+			RichTextDefaults.ImageResolver = p =>
+			{
+				Texture2D texture;
+
+				// _textureCache is field of type Dictionary<string, Texture2D>
+				// it is used to cache textures
+				if (!_textureCache.TryGetValue(p, out texture))
+				{
+					using (var stream = File.OpenRead(Path.Combine(BaseRichTextPath, p)))
+					{
+						texture = Texture2D.FromStream(GraphicsDevice, stream);
+					}
+
+					_textureCache[p] = texture;
+				}
+
+				return new TextureFragment(texture);
+			};
 		}
 
 		public void ClosingFunction(object sender, System.ComponentModel.CancelEventArgs e)
@@ -339,8 +420,7 @@ namespace MyraPad
 				{
 					_desktop.OnKeyDown(key);
 				}
-			};
-
+			}; 
 			_desktop.KeyDown += (s, a) =>
 			{
 				if (_desktop.HasModalWidget || _ui._mainMenu.IsOpen)
@@ -348,33 +428,33 @@ namespace MyraPad
 					return;
 				}
 
-				if (_desktop.DownKeys.Contains(Keys.LeftControl) || _desktop.DownKeys.Contains(Keys.RightControl))
+				if (_desktop.IsKeyDown(Keys.LeftControl) || _desktop.IsKeyDown(Keys.RightControl))
 				{
-					if (_desktop.DownKeys.Contains(Keys.N))
+					if (_desktop.IsKeyDown(Keys.N))
 					{
 						NewItemOnClicked(this, EventArgs.Empty);
 					}
-					else if (_desktop.DownKeys.Contains(Keys.O))
+					else if (_desktop.IsKeyDown(Keys.O))
 					{
 						OpenItemOnClicked(this, EventArgs.Empty);
 					}
-					else if (_desktop.DownKeys.Contains(Keys.R))
+					else if (_desktop.IsKeyDown(Keys.R))
 					{
 						OnMenuFileReloadSelected(this, EventArgs.Empty);
 					}
-					else if (_desktop.DownKeys.Contains(Keys.S))
+					else if (_desktop.IsKeyDown(Keys.S))
 					{
 						SaveItemOnClicked(this, EventArgs.Empty);
 					}
-					else if (_desktop.DownKeys.Contains(Keys.E))
+					else if (_desktop.IsKeyDown(Keys.E))
 					{
 						ExportCsItemOnSelected(this, EventArgs.Empty);
 					}
-					else if (_desktop.DownKeys.Contains(Keys.Q))
+					else if (_desktop.IsKeyDown(Keys.Q))
 					{
 						Exit();
 					}
-					else if (_desktop.DownKeys.Contains(Keys.F))
+					else if (_desktop.IsKeyDown(Keys.F))
 					{
 						_menuEditUpdateSource_Selected(this, EventArgs.Empty);
 					}
@@ -403,20 +483,16 @@ namespace MyraPad
 			_ui._textSource.TextChanged += _textSource_TextChanged;
 			_ui._textSource.KeyDown += _textSource_KeyDown;
 			_ui._textSource.Char += _textSource_Char;
-
+			_ui._textSource.TextDeleted += _textSource_TextDeleted;
 			_ui._textStatus.Text = string.Empty;
 			_ui._textLocation.Text = "Line: 0, Column: 0, Indent: 0";
 
-			_propertyGrid = new PropertyGrid
-			{
-				IgnoreCollections = true
-			};
-			_propertyGrid.PropertyChanged += PropertyGridOnPropertyChanged;
-			_propertyGrid.CustomValuesProvider = RecordValuesProvider;
-			_propertyGrid.CustomSetter = RecordSetter;
-			_propertyGrid.Settings.AssetManager = MyraEnvironment.DefaultAssetManager;
+			_ui._textBoxFilter.TextChanged += _textBoxFilter_TextChanged;
 
-			_ui._propertyGridPane.Content = _propertyGrid;
+			PropertyGrid.PropertyChanged += PropertyGridOnPropertyChanged;
+			PropertyGrid.CustomValuesProvider = RecordValuesProvider;
+			PropertyGrid.CustomSetter = RecordSetter;
+			PropertyGrid.Settings.AssetManager = MyraEnvironment.DefaultAssetManager;
 
 			_ui._topSplitPane.SetSplitterPosition(0, _state != null ? _state.TopSplitterPosition : 0.75f);
 			_ui._leftSplitPane.SetSplitterPosition(0, _state != null ? _state.LeftSplitterPosition : 0.5f);
@@ -424,6 +500,44 @@ namespace MyraPad
 			_desktop.Root = _ui;
 
 			UpdateMenuFile();
+		}
+
+		private void _textSource_TextDeleted(object _, TextDeletedEventArgs e)
+		{
+			if (e.Value.Contains('\n'))
+			{
+				return;
+			}
+			
+			int startIndexOfLine = _ui._textSource.Text.LastIndexOfSafely('\n', _ui._textSource.CursorPosition - 2);
+			var endIndexOfLine = _ui._textSource.Text.IndexOfSafely('\n', _ui._textSource.CursorPosition - 2);
+			if (endIndexOfLine < 0)
+			{
+				endIndexOfLine = _ui._textSource.Text.Length;
+			}
+			
+			if (startIndexOfLine < 0)
+			{
+				startIndexOfLine = 0;
+			}
+			
+			var currentLineString = _ui._textSource.Text[startIndexOfLine..endIndexOfLine];
+			if (currentLineString is null)
+			{
+				return;
+			}
+			
+			if (string.IsNullOrWhiteSpace(currentLineString))
+			{
+				_ui._textSource.Text = _ui._textSource.Text.Remove(startIndexOfLine, currentLineString.Length);
+				_ui._textSource.CursorPosition = startIndexOfLine + 1;
+			}
+		}
+
+		private void _textBoxFilter_TextChanged(object sender, ValueChangedEventArgs<string> e)
+		{
+			PropertyGrid.Filter = _ui._textBoxFilter.Text;
+			_ui._propertyGridPane.ResetScroll();
 		}
 
 		private object[] RecordValuesProvider(Record record)
@@ -434,7 +548,7 @@ namespace MyraPad
 				return null;
 			}
 
-			var widget = _propertyGrid.Object as Widget;
+			var widget = PropertyGrid.Object as Widget;
 			if (widget == null)
 			{
 				return null;
@@ -494,7 +608,7 @@ namespace MyraPad
 		{
 			try
 			{
-				var project = Project.LoadFromXml(_ui._textSource.Text, AssetManager, _project.Stylesheet);
+				var project = Project.LoadFromXml(_ui._textSource.Text, AssetManager);
 				_ui._textSource.Text = _project.Save();
 			}
 			catch (Exception ex)
@@ -549,11 +663,11 @@ namespace MyraPad
 					onFinished(false);
 					return;
 				}
-				
+
 				// Check whether project has external assets
 				var hasExternalResources = false;
 
-				UIUtils.ProcessWidgets(Project.Root, (w, _) =>
+				Project.Root.ProcessWidgets(w =>
 				{
 					ProcessResourcesPaths(w, k =>
 					{
@@ -580,7 +694,7 @@ namespace MyraPad
 						var updated = false;
 
 						var folder = Path.GetDirectoryName(newPath);
-						UIUtils.ProcessWidgets(Project.Root, (widget, _) =>
+						UIUtils.ProcessWidgets(Project.Root, widget =>
 						{
 							var newResources = new Dictionary<string, string>();
 
@@ -605,7 +719,7 @@ namespace MyraPad
 							});
 
 							// Update resources
-							foreach(var pair in newResources)
+							foreach (var pair in newResources)
 							{
 								if (widget.Resources[pair.Key] != pair.Value)
 								{
@@ -660,20 +774,24 @@ namespace MyraPad
 				return;
 			}
 
-			var il = _indentLevel;
-			if (pos < text.Length - 2 && text[pos] == '<' && text[pos + 1] == '/')
-			{
-				--il;
-			}
+			var indentLevel = _indentLevel;
+			bool wrapAfterIndent = text.SubstringSafely(pos + 1, 2) == "</";
 
-			if (il <= 0)
+			if (indentLevel <= 0)
 			{
 				return;
 			}
 
 			// Insert indent
-			var indent = new string(' ', il * _options.IndentSpacesSize);
-			_ui._textSource.Insert(pos, indent);
+			var indent = new string(' ', indentLevel * _options.IndentSpacesSize);
+			if (wrapAfterIndent)
+			{
+				indent += '\n';
+			}
+			_ui._textSource.Insert(pos + 1, indent);
+
+			_ui._textSource.CursorPosition = pos + 2;
+			//Move the cursor to the position after indent
 		}
 
 		private void ApplyAutoClose()
@@ -685,17 +803,19 @@ namespace MyraPad
 
 			_applyAutoClose = false;
 
-			var text = _ui._textSource.Text;
 			var pos = _ui._textSource.CursorPosition;
-
 			var currentTag = CurrentTag;
 			if (string.IsNullOrEmpty(currentTag) || !_needsCloseTag)
 			{
 				return;
 			}
 
-			var close = "</" + ExtractTag(currentTag) + ">";
-			_ui._textSource.Insert(pos, close);
+			var closeTag = "</" + ExtractTag(currentTag) + ">";
+			_ui._textSource.Insert(pos + 1, closeTag);
+			
+			_ui._textSource.CursorPosition = pos;
+			//Method Insert(int, string) has moved the cursor position
+			//this will restore the cursor to the position after '<Tag>' and before '<Tag/>'
 		}
 
 		private void _textSource_TextChanged(object sender, ValueChangedEventArgs<string> e)
@@ -708,6 +828,8 @@ namespace MyraPad
 				{
 					return;
 				}
+
+				UpdateCursor();
 
 				var newLength = string.IsNullOrEmpty(e.NewValue) ? 0 : e.NewValue.Length;
 				var oldLength = string.IsNullOrEmpty(e.OldValue) ? 0 : e.OldValue.Length;
@@ -731,61 +853,21 @@ namespace MyraPad
 		{
 			_refreshInitiated = null;
 
-			_loadQueue.Enqueue(_ui._textSource.Text);
-			_refreshProjectEvent.Set();
+			_queue.QueueLoadProject(_ui._textSource.Text);
 		}
 
-		private void RefreshProjectProc(object state)
+		private void QueueUIAction(Action action)
 		{
-			while (true)
-			{
-				_refreshProjectEvent.WaitOne();
-
-				string data;
-
-				// We're interested only in the last data
-				while (_loadQueue.Count > 1)
-				{
-					_loadQueue.TryDequeue(out data);
-				}
-
-				if (_loadQueue.TryDequeue(out data))
-				{
-					try
-					{
-						_ui._textStatus.Text = "Reloading...";
-
-						var xDoc = XDocument.Parse(data);
-
-						var stylesheet = Stylesheet.Current;
-						var stylesheetPathAttr = xDoc.Root.Attribute("StylesheetPath");
-						if (stylesheetPathAttr != null)
-						{
-							try
-							{
-								stylesheet = StylesheetFromFile(stylesheetPathAttr.Value);
-							}
-							catch (Exception ex)
-							{
-								var dialog = Dialog.CreateMessageBox("Stylesheet Error", ex.ToString());
-								dialog.ShowModal(_desktop);
-							}
-						}
-
-						var newProject = Project.LoadFromXml(xDoc, AssetManager, stylesheet);
-						_newProjectsQueue.Enqueue(newProject);
-
-						_ui._textStatus.Text = string.Empty;
-					}
-					catch (Exception ex)
-					{
-						_ui._textStatus.Text = ex.Message;
-					}
-				}
-			}
+			_uiActions.Enqueue(action);
 		}
 
-		private static readonly Regex TagResolver = new Regex("<([A-Za-z0-9\\.]+)");
+		public void QueueSetStatusText(string text)
+		{
+			QueueUIAction(() =>
+			{
+				_ui._textStatus.Text = text;
+			});
+		}
 
 		private static string ExtractTag(string source)
 		{
@@ -910,7 +992,8 @@ namespace MyraPad
 
 			if ((lastStart != _currentTagStart || lastEnd != _currentTagEnd))
 			{
-				_propertyGrid.Object = null;
+				PropertyGrid.Object = null;
+				_ui._propertyGridPane.ResetScroll();
 				if (!string.IsNullOrEmpty(currentTag))
 				{
 					var xml = currentTag;
@@ -921,7 +1004,7 @@ namespace MyraPad
 						xml += "</" + tag + ">";
 					}
 
-					ThreadPool.QueueUserWorkItem(LoadObjectAsync, xml);
+					_queue.QueueLoadObject(xml);
 				}
 			}
 
@@ -1018,8 +1101,8 @@ namespace MyraPad
 						_autoCompleteMenu.Items.Add(menuItem);
 					}
 
-					var screen = _ui._textSource.CursorScreenPosition;
-					screen.Y += _ui._textSource.Font.LineSpacing;
+					var screen = _ui._textSource.ToGlobal(_ui._textSource.CursorCoords);
+					screen.Y += _ui._textSource.Font.LineHeight;
 
 					if (_autoCompleteMenu.Items.Count > 0)
 					{
@@ -1082,25 +1165,13 @@ namespace MyraPad
 
 			if (_parentTag == "VerticalStackPanel" || _parentTag == "HorizontalStackPanel")
 			{
-					result.Add(_parentTag + "." + Project.DefaultProportionName);
-					result.Add(_parentTag + "." + ProportionsName);
+				result.Add(_parentTag + "." + Project.DefaultProportionName);
+				result.Add(_parentTag + "." + ProportionsName);
 			}
 
 			result = result.OrderBy(s => !s.Contains('.')).ThenBy(s => s).ToList();
 
 			return result;
-		}
-
-		private void LoadObjectAsync(object state)
-		{
-			try
-			{
-				var xml = (string)state;
-				_newObject = Project.LoadObjectFromXml(xml, AssetManager);
-			}
-			catch (Exception)
-			{
-			}
 		}
 
 		private void UpdateCursor()
@@ -1123,49 +1194,15 @@ namespace MyraPad
 
 		private void OnMenuFileReloadSelected(object sender, EventArgs e)
 		{
-			AssetManager.ClearCache();
+			AssetManager.Cache.Clear();
+			_fontCache.Clear();
+			_textureCache.Clear();
 			Load(FilePath);
-		}
-
-		private Stylesheet StylesheetFromFile(string path)
-		{
-			if (!Path.IsPathRooted(path))
-			{
-				path = Path.Combine(Path.GetDirectoryName(FilePath), path);
-			}
-
-			return AssetManager.Load<Stylesheet>(path);
-		}
-
-		private void LoadStylesheet(string filePath)
-		{
-			if (string.IsNullOrEmpty(filePath))
-			{
-				return;
-			}
-
-			try
-			{
-				if (!Path.IsPathRooted(filePath))
-				{
-					filePath = Path.Combine(Path.GetDirectoryName(FilePath), filePath);
-				}
-
-				var stylesheet = StylesheetFromFile(filePath);
-
-				Project.StylesheetPath = filePath;
-				UpdateSource();
-			}
-			catch (Exception ex)
-			{
-				var dialog = Dialog.CreateMessageBox("Error", ex.ToString());
-				dialog.ShowModal(_desktop);
-			}
 		}
 
 		private void OnMenuFileLoadStylesheet(object sender, EventArgs e)
 		{
-			AssetManager.ClearCache();
+			AssetManager.Cache.Clear();
 
 			var dlg = new FileDialog(FileDialogMode.OpenFile)
 			{
@@ -1206,9 +1243,9 @@ namespace MyraPad
 				// Check whether stylesheet could be loaded
 				try
 				{
-					var stylesheet = StylesheetFromFile(filePath);
+					var stylesheet = AssetManager.LoadStylesheet(filePath);
 				}
-				catch(Exception ex)
+				catch (Exception ex)
 				{
 					var msg = Dialog.CreateMessageBox("Stylesheet Error", ex.Message);
 					msg.ShowModal(_desktop);
@@ -1228,7 +1265,7 @@ namespace MyraPad
 
 		private void OnMenuFileResetStylesheetSelected(object sender, EventArgs e)
 		{
-			AssetManager.ClearCache();
+			AssetManager.Cache.Clear();
 			Project.StylesheetPath = null;
 			UpdateSource();
 			UpdateMenuFile();
@@ -1284,7 +1321,7 @@ namespace MyraPad
 		{
 			IsDirty = true;
 
-			var xml = _project.SaveObjectToXml(_propertyGrid.Object, ExtractTag(CurrentTag));
+			var xml = _project.SaveObjectToXml(PropertyGrid.Object, ExtractTag(CurrentTag), ParentType);
 
 			if (_needsCloseTag)
 			{
@@ -1439,35 +1476,46 @@ namespace MyraPad
 		{
 			base.Update(gameTime);
 
-			if (_refreshInitiated != null && (DateTime.Now - _refreshInitiated.Value).TotalSeconds >= 0.75f)
+			try
 			{
-				QueueRefreshProject();
-			}
-
-			if (_newObject != null)
-			{
-				_propertyGrid.Object = _newObject;
-				_newObject = null;
-			}
-
-			Project newProject;
-			while (_newProjectsQueue.Count > 1)
-			{
-				_newProjectsQueue.TryDequeue(out newProject);
-			}
-
-			if (_newProjectsQueue.TryDequeue(out newProject))
-			{
-				Project = newProject;
-
-				if (Project.Stylesheet != null && Project.Stylesheet.DesktopStyle != null)
+				if (_refreshInitiated != null && (DateTime.Now - _refreshInitiated.Value).TotalSeconds >= 0.75f)
 				{
-					_ui._projectHolder.Background = Project.Stylesheet.DesktopStyle.Background;
+					QueueRefreshProject();
 				}
-				else
+
+				while (!_uiActions.IsEmpty)
 				{
-					_ui._projectHolder.Background = null;
+					Action action;
+					_uiActions.TryDequeue(out action);
+					action();
 				}
+
+				if (NewObject != null)
+				{
+					PropertyGrid.ParentType = ParentType;
+					PropertyGrid.Object = NewObject;
+
+					_ui._propertyGridPane.ResetScroll();
+					NewObject = null;
+				}
+
+				if (NewProject != null)
+				{
+					Project = NewProject;
+
+					if (Project.Stylesheet != null && Project.Stylesheet.DesktopStyle != null)
+					{
+						_ui._projectHolder.Background = Project.Stylesheet.DesktopStyle.Background;
+					}
+					else
+					{
+						_ui._projectHolder.Background = null;
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				_ui._textStatus.Text = ex.Message;
 			}
 		}
 
@@ -1484,6 +1532,8 @@ namespace MyraPad
 		{
 			base.EndRun();
 
+
+
 			var state = new State
 			{
 				Size = new Point(GraphicsDevice.PresentationParameters.BackBufferWidth,
@@ -1496,6 +1546,8 @@ namespace MyraPad
 			};
 
 			state.Save();
+
+			_queue.Quit();
 		}
 
 		private void New(string rootType)

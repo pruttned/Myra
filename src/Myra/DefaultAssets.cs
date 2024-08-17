@@ -1,32 +1,13 @@
-﻿using Myra.Graphics2D.TextureAtlases;
-using Myra.Graphics2D.UI.Styles;
-using Myra.Utility;
-using XNAssets;
-
-#if !STRIDE
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-#else
-using SpriteFontPlus;
-using Stride.Core.Mathematics;
-using Stride.Graphics;
-using Texture2D = Stride.Graphics.Texture;
-using RasterizerState = Stride.Graphics.RasterizerStateDescription;
-#endif
+﻿using Myra.Graphics2D.UI.Styles;
+using AssetManagementBase;
+using System;
 
 namespace Myra
 {
 	public static class DefaultAssets
 	{
 		private static AssetManager _assetManager;
-		private static SpriteFont _font;
-		private static SpriteFont _fontSmall;
-		private static TextureRegionAtlas _uiTextureRegionAtlas;
-		private static Stylesheet _uiStylesheet;
-		private static Texture2D _uiBitmap;
-		private static RasterizerState _uiRasterizerState;
-		private static Texture2D _white;
-		private static TextureRegion _whiteRegion;
+		private static Stylesheet _defaultStylesheet, _defaultStylesheet2x;
 
 		private static AssetManager AssetManager
 		{
@@ -34,162 +15,54 @@ namespace Myra
 			{
 				if (_assetManager == null)
 				{
-					_assetManager = new AssetManager(MyraEnvironment.GraphicsDevice, new ResourceAssetResolver(typeof(DefaultAssets).Assembly, "Resources."));
+					_assetManager = AssetManager.CreateResourceAssetManager(typeof(DefaultAssets).Assembly, "Resources.");
 				}
 
 				return _assetManager;
 			}
 		}
 
-		public static Texture2D White
+		[Obsolete("Use DefaultStylesheet")]
+		public static Stylesheet UIStylesheet => DefaultStylesheet;
+
+		public static Stylesheet DefaultStylesheet
 		{
 			get
 			{
-				if (_white == null)
+				if (_defaultStylesheet != null)
 				{
-					_white = CrossEngineStuff.CreateTexture2D(1, 1);
-					CrossEngineStuff.SetData(_white, new[] {Color.White});
+					return _defaultStylesheet;
 				}
 
-				return _white;
+				_defaultStylesheet = AssetManager.LoadStylesheet("default_ui_skin.xmms");
+				return _defaultStylesheet;
 			}
 		}
 
-		public static TextureRegion WhiteRegion
+		public static Stylesheet DefaultStylesheet2X
 		{
 			get
 			{
-				if (_whiteRegion == null)
+				if (_defaultStylesheet2x != null)
 				{
-					_whiteRegion = UITextureRegionAtlas["white"];
+					return _defaultStylesheet2x;
 				}
 
-				return _whiteRegion;
+				_defaultStylesheet2x = AssetManager.LoadStylesheet("default_ui_skin_2x.xmms");
+				return _defaultStylesheet2x;
 			}
-		}
-
-		public static SpriteFont Font
-		{
-			get
-			{
-				if (_font != null)
-				{
-					return _font;
-				}
-
-				_font = AssetManager.Load<SpriteFont>("default_font.fnt");
-				return _font;
-			}
-		}
-
-		public static SpriteFont FontSmall
-		{
-			get
-			{
-				if (_fontSmall != null)
-				{
-					return _fontSmall;
-				}
-
-				_fontSmall = AssetManager.Load<SpriteFont>("default_font_small.fnt");
-				return _fontSmall;
-			}
-		}
-
-		public static TextureRegionAtlas UITextureRegionAtlas
-		{
-			get
-			{
-				if (_uiTextureRegionAtlas != null)
-				{
-					return _uiTextureRegionAtlas;
-				}
-
-				_uiTextureRegionAtlas = AssetManager.Load<TextureRegionAtlas>("default_ui_skin.atlas");
-				return _uiTextureRegionAtlas;
-			}
-		}
-
-		public static Stylesheet UIStylesheet
-		{
-			get
-			{
-				if (_uiStylesheet != null)
-				{
-					return _uiStylesheet;
-				}
-
-				_uiStylesheet = AssetManager.Load<Stylesheet>("default_ui_skin.xmms");
-				return _uiStylesheet;
-			}
-		}
-
-		public static Texture2D UIBitmap
-		{
-			get
-			{
-				if (_uiBitmap != null)
-				{
-					return _uiBitmap;
-				}
-
-				_uiBitmap = AssetManager.Load<Texture2D>("default_ui_skin_atlas.png");
-				return _uiBitmap;
-			}
-		}
-
-		public static RasterizerState UIRasterizerState
-		{
-			get
-			{
-				if (_uiRasterizerState != null)
-				{
-					return _uiRasterizerState;
-				}
-
-				_uiRasterizerState = new RasterizerState
-				{
-					ScissorTestEnable = true
-				};
-				return _uiRasterizerState;
-			}
-		}
-
-		static DefaultAssets()
-		{
-#if STRIDE
-			BMFontLoader.GraphicsDevice = MyraEnvironment.GraphicsDevice;
-#endif
 		}
 
 		internal static void Dispose()
-		{	
-			_font = null;
-			_fontSmall = null;
-			_uiTextureRegionAtlas = null;
-			_uiStylesheet = null;
-			Stylesheet.Current = null;
+		{
+			_defaultStylesheet = null;
+			_defaultStylesheet2x = null;
 
 			if (_assetManager != null)
 			{
-				_assetManager.ClearCache();
+				_assetManager.Cache.Clear();
 				_assetManager = null;
 			}
-
-			_whiteRegion = null;
-			if (_white != null)
-			{
-				_white.Dispose();
-				_white = null;
-			}
-		
-#if !STRIDE
-			if (_uiRasterizerState != null)
-			{
-				_uiRasterizerState.Dispose();
-				_uiRasterizerState = null;
-			}
-#endif
 		}
 	}
 }

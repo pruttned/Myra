@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Myra.Attributes;
 using Myra.Graphics2D;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -49,6 +50,7 @@ namespace Myra.Samples.ObjectEditor
 
 		[Category("Data")]
 		[DisplayName("Attack (ReadOnly)")]
+		[RenderAsSlider(1, 200)]
 		public int Attack
 		{
 			get; private set;
@@ -56,12 +58,14 @@ namespace Myra.Samples.ObjectEditor
 
 		[Category("Data")]
 		[DisplayName("Defense (ReadOnly)")]
+		[RenderAsSlider(1, 200)]
 		public int Defense
 		{
 			get; private set;
 		}
 
 		[Category("Data")]
+		[DesignerFolded]
 		public HitPoints HitPoints
 		{
 			get;
