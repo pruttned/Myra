@@ -515,36 +515,39 @@ namespace Myra.Graphics2D.UI
 			_renderContext.DeviceScissor = oldDeviceScissor;
 		}
 
+		public void Update()
+		{
+            // Layout run
+            UpdateLayout();
+
+            // First input run: set Desktop/Widgets input states and schedule input events
+            UpdateInput();
+
+            _inputContext.Reset();
+
+            var childrenCopy = ChildrenCopy;
+            for (var i = childrenCopy.Count - 1; i >= 0; --i)
+            {
+                var widget = childrenCopy[i];
+                widget.ProcessInput(_inputContext);
+            }
+
+            // Only one widget at a time can receive mouse wheel event
+            // So scheduling it here
+            if (_inputContext.MouseWheelWidget != null)
+            {
+                InputEventsManager.Queue(_inputContext.MouseWheelWidget, InputEventType.MouseWheel);
+            }
+
+            // Second input run: process input events
+            InputEventsManager.ProcessEvents();
+
+            // Do another layout run, since an input event could cause the layout change
+            UpdateLayout();
+        }
+
 		public void Render()
 		{
-			// Layout run
-			UpdateLayout();
-
-			// First input run: set Desktop/Widgets input states and schedule input events
-			UpdateInput();
-
-			_inputContext.Reset();
-
-			var childrenCopy = ChildrenCopy;
-			for (var i = childrenCopy.Count - 1; i >= 0; --i)
-			{
-				var widget = childrenCopy[i];
-				widget.ProcessInput(_inputContext);
-			}
-
-			// Only one widget at a time can receive mouse wheel event
-			// So scheduling it here
-			if (_inputContext.MouseWheelWidget != null)
-			{
-				InputEventsManager.Queue(_inputContext.MouseWheelWidget, InputEventType.MouseWheel);
-			}
-
-			// Second input run: process input events
-			InputEventsManager.ProcessEvents();
-
-			// Do another layout run, since an input event could cause the layout change
-			UpdateLayout();
-
 			// Render run
 			RenderVisual();
 		}
