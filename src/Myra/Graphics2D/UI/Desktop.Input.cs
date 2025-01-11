@@ -43,6 +43,8 @@ namespace Myra.Graphics2D.UI
 		public Point PreviousMousePosition { get; private set; }
 		public Point? PreviousTouchPosition { get; private set; }
 
+		public bool EnableTabFocus { get; set; } = true;
+		
 		public Point MousePosition
 		{
 			get => _mousePosition;
@@ -216,7 +218,7 @@ namespace Myra.Graphics2D.UI
 				var key = (Keys)i;
 				if (_downKeys[i] && !_lastDownKeys[i])
 				{
-					if (key == Keys.Tab)
+					if (EnableTabFocus && key == Keys.Tab)
 					{
 						FocusNextWidget();
 					}
